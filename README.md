@@ -50,6 +50,7 @@ await db.close();
 | **Zero Setup** | Single `.ovn` file stores data, indexes, and logs. No server needed. |
 | **MQL Support** | Familiar `$match`, `$group`, `$set`, `$inc`, etc. |
 | **ACID Guarantees** | Multi-Version Concurrency (MVCC) means readers never block writers. |
+| **Document Versioning**| Enable history, diffs, and point-in-time non-destructive rollbacks natively. |
 | **TypeScript First** | Fully typed Schemas and Collection logic. |
 
 ---
@@ -87,6 +88,7 @@ Every document is multi-versioned via a TxID. Readers capture a point-in-time sn
 ### 4. Advanced Modules
 
 - **Security & ACL:** Built-in Row-Level Security, Document filtering (`filterDocumentByACL`), Field-Level restrictions, and high-performance Audit Logging.
+- **Document Versioning:** Natively track full document history, compute granular `diffVersions()`, and execute safe `rollbackToVersion()` time-travel.
 - **Views & Relations:** Create Materialized Views or define rigorous `defineRelation` dependencies with referential integrity (Cascade/Restrict constraints).
 - **Triggers:** Invoke Rust-Native hooks directly on document events for data enrichment before saving.
 
@@ -131,6 +133,25 @@ try {
 } catch (e) {
   await txn.rollback();
 }
+```
+
+### Document Versioning & Time Travel
+
+Oblivinx3x handles automatic version tracking natively.
+
+```typescript
+// Enable versioning on a collection
+await users.enableVersioning({ mode: 'diff', maxVersions: 50 });
+
+// Operations are automatically tracked as new versions
+await users.updateOne({ _id: 'u1' }, { $set: { role: 'admin' } });
+
+// Compute the exact difference between two versions
+const diff = await users.diffVersions('u1', 1, 2);
+console.log(diff.modified); // { role: { old: 'user', new: 'admin' } }
+
+// Non-destructive rollback to the previous state
+await users.rollbackToVersion('u1', 1, 'admin-overseer-id');
 ```
 
 ---
